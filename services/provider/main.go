@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"time"
 
 	"github.com/red-hat-storage/ocs-operator/services/provider/server"
 	"google.golang.org/grpc"
@@ -13,6 +14,11 @@ var (
 
 func main() {
 	flag.Parse()
-	var opts []grpc.ServerOption
+
+	authManager := server.NewAuthManager("mysecretkey", 4*time.Minute)
+	interceptor := server.NewAuthInterceptor(authManager)
+	opts := []grpc.ServerOption{
+		grpc.UnaryInterceptor(interceptor.Unary()),
+	}
 	server.Start(*port, opts)
 }

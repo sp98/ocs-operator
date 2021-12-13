@@ -8,10 +8,24 @@ import (
 	pb "github.com/red-hat-storage/ocs-operator/services/provider/pb"
 	"google.golang.org/grpc"
 	"k8s.io/klog"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type ocsProviderServer struct {
 	pb.UnimplementedOCSProviderServer
+	client.Client
+	authManager *AuthManager
+}
+
+func NewOCSProviderServer(client client.Client, auth *AuthManager) *ocsProviderServer {
+	return &ocsProviderServer{
+		Client:      client,
+		authManager: auth}
+}
+
+// GenerateToken RPC call to generate a new jwt token for the consumer cluster
+func (c *ocsProviderServer) GenerateToken(ctx context.Context, req *pb.GenerateTokenRequest) (*pb.GenereateTokenResponse, error) {
+	return &pb.GenereateTokenResponse{}, nil
 }
 
 // OnBoardConsumer RPC call to onboard a new OCS consumer cluster.

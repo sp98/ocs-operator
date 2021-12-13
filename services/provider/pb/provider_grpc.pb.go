@@ -18,6 +18,8 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type OCSProviderClient interface {
+	// GenerateToken RPC call to generate a new jwt token for the consumer cluster
+	GenerateToken(ctx context.Context, in *GenerateTokenRequest, opts ...grpc.CallOption) (*GenereateTokenResponse, error)
 	// OnBoardConsumer RPC call to validate the consumer and create StorageConsumer
 	// resource on the StorageProvider cluster
 	OnBoardConsumer(ctx context.Context, in *OnBoardConsumerRequest, opts ...grpc.CallOption) (*OnBoardConsumerResponse, error)
@@ -35,6 +37,15 @@ type oCSProviderClient struct {
 
 func NewOCSProviderClient(cc grpc.ClientConnInterface) OCSProviderClient {
 	return &oCSProviderClient{cc}
+}
+
+func (c *oCSProviderClient) GenerateToken(ctx context.Context, in *GenerateTokenRequest, opts ...grpc.CallOption) (*GenereateTokenResponse, error) {
+	out := new(GenereateTokenResponse)
+	err := c.cc.Invoke(ctx, "/provider.OCSProvider/GenerateToken", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *oCSProviderClient) OnBoardConsumer(ctx context.Context, in *OnBoardConsumerRequest, opts ...grpc.CallOption) (*OnBoardConsumerResponse, error) {
@@ -77,6 +88,8 @@ func (c *oCSProviderClient) UpdateCapacity(ctx context.Context, in *UpdateCapaci
 // All implementations must embed UnimplementedOCSProviderServer
 // for forward compatibility
 type OCSProviderServer interface {
+	// GenerateToken RPC call to generate a new jwt token for the consumer cluster
+	GenerateToken(context.Context, *GenerateTokenRequest) (*GenereateTokenResponse, error)
 	// OnBoardConsumer RPC call to validate the consumer and create StorageConsumer
 	// resource on the StorageProvider cluster
 	OnBoardConsumer(context.Context, *OnBoardConsumerRequest) (*OnBoardConsumerResponse, error)
@@ -93,6 +106,9 @@ type OCSProviderServer interface {
 type UnimplementedOCSProviderServer struct {
 }
 
+func (UnimplementedOCSProviderServer) GenerateToken(context.Context, *GenerateTokenRequest) (*GenereateTokenResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GenerateToken not implemented")
+}
 func (UnimplementedOCSProviderServer) OnBoardConsumer(context.Context, *OnBoardConsumerRequest) (*OnBoardConsumerResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method OnBoardConsumer not implemented")
 }
@@ -116,6 +132,24 @@ type UnsafeOCSProviderServer interface {
 
 func RegisterOCSProviderServer(s grpc.ServiceRegistrar, srv OCSProviderServer) {
 	s.RegisterService(&OCSProvider_ServiceDesc, srv)
+}
+
+func _OCSProvider_GenerateToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GenerateTokenRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OCSProviderServer).GenerateToken(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/provider.OCSProvider/GenerateToken",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OCSProviderServer).GenerateToken(ctx, req.(*GenerateTokenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _OCSProvider_OnBoardConsumer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -197,6 +231,10 @@ var OCSProvider_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "provider.OCSProvider",
 	HandlerType: (*OCSProviderServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "GenerateToken",
+			Handler:    _OCSProvider_GenerateToken_Handler,
+		},
 		{
 			MethodName: "OnBoardConsumer",
 			Handler:    _OCSProvider_OnBoardConsumer_Handler,

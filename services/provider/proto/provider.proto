@@ -8,6 +8,9 @@ option go_package = "./;providerpb";
 
 // OCSProvider holds the RPC methods that the OCS consumer can use to communicate with remote OCS provider cluster
 service OCSProvider {
+  // GenerateToken RPC call to generate a new jwt token for the consumer cluster
+  rpc GenerateToken(GenerateTokenRequest)
+  returns (GenereateTokenResponse){}
   // OnBoardConsumer RPC call to validate the consumer and create StorageConsumer
   // resource on the StorageProvider cluster
   rpc OnBoardConsumer (OnBoardConsumerRequest)
@@ -24,11 +27,21 @@ service OCSProvider {
 }
 
 
+// GenerateTokenRequest
+message GenerateTokenRequest{
+}
+
+// GenereateTokenResponse
+message GenereateTokenResponse{
+    // accessToken is the jwt token generated for the consumer cluster
+    string accessToken = 1;
+}
+
 // OnBoardConsumerRequest holds the required information to validate the consumer and create StorageConsumer
 // resource on the StorageProvider cluster
 message OnBoardConsumerRequest{
-    // token provided by the provider cluster admin to authenticate the consumer
-    string token =1;
+    // accessToken is the jwt token to authenticate the consumer cluster
+    string accessToken =1;
     // capacity is the desired storage requested by the consumer cluster
     string capacity = 2;
 }
