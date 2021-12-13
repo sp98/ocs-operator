@@ -4,6 +4,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/sha256"
 	"fmt"
 	"io"
 	"time"
@@ -65,16 +66,16 @@ func (a *AuthManager) VerifyAccessToken(accessToken string) (*Claims, error) {
 
 // GetEncryptedID encryptes the StorageConsumer UID
 func (a *AuthManager) GetEncryptedID(id string) ([]byte, error) {
-	return encrypt(id, a.secretKey)
+	hashedID := sha256.Sum256([]byte(id))
+	return encrypt(hashedID, a.secretKey)
 }
 
 // VerifyEncryptedID verifies the encrypted StorageConsumer UID
 func (a *AuthManager) VerifyEncryptedID(id string) ([]byte, error) {
 	return decrypt([]byte(id), a.secretKey)
-
 }
 
-func encrypt(s, key string) ([]byte, error) {
+func encrypt(s [32]byte, key string) ([]byte, error) {
 	c, err := aes.NewCipher([]byte(key))
 	if err != nil {
 		return []byte{}, fmt.Errorf("failed to create new cipher. %v", err)
@@ -90,7 +91,7 @@ func encrypt(s, key string) ([]byte, error) {
 		return []byte{}, fmt.Errorf("failed generate nonce with secure random sequence. %v", err)
 	}
 
-	return gcm.Seal(nonce, nonce, []byte(s), nil), nil
+	return gcm.Seal(nonce, nonce, s[:], nil), nil
 }
 
 func decrypt(s []byte, key string) ([]byte, error) {
@@ -106,7 +107,8 @@ func decrypt(s []byte, key string) ([]byte, error) {
 
 	nonceSize := gcm.NonceSize()
 	if len(s) < nonceSize {
-		fmt.Println(err)
+		// TODO: return new error here
+		return []byte{}, fmt.Errorf("invalid nonce size. %v", err)
 	}
 
 	nonce, ciphertext := s[:nonceSize], s[nonceSize:]

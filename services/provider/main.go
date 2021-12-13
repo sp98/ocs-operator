@@ -15,10 +15,12 @@ var (
 func main() {
 	flag.Parse()
 
-	authManager := server.NewAuthManager("mysecretkey", 4*time.Minute)
+	authManager := server.NewAuthManager("passphrasewhichneedstobe32bytesa", 4*time.Minute)
 	interceptor := server.NewAuthInterceptor(authManager)
 	opts := []grpc.ServerOption{
 		grpc.UnaryInterceptor(interceptor.Unary()),
 	}
-	server.Start(*port, opts)
+
+	providerServer := server.NewOCSProviderServer(nil, authManager)
+	server.Start(*port, providerServer, opts)
 }

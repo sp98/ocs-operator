@@ -10,7 +10,7 @@ option go_package = "./;providerpb";
 service OCSProvider {
   // GenerateToken RPC call to generate a new jwt token for the consumer cluster
   rpc GenerateToken(GenerateTokenRequest)
-  returns (GenereateTokenResponse){}
+  returns (GenerateTokenResponse){}
   // OnBoardConsumer RPC call to validate the consumer and create StorageConsumer
   // resource on the StorageProvider cluster
   rpc OnBoardConsumer (OnBoardConsumerRequest)
@@ -32,7 +32,7 @@ message GenerateTokenRequest{
 }
 
 // GenereateTokenResponse
-message GenereateTokenResponse{
+message GenerateTokenResponse{
     // accessToken is the jwt token generated for the consumer cluster
     string accessToken = 1;
 }

@@ -2,12 +2,14 @@ package server
 
 import (
 	"context"
-	"log"
+	"fmt"
 
+	"github.com/red-hat-storage/ocs-operator/services/provider/common"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"k8s.io/klog"
 )
 
 // AuthInterceptor is a server interceptor for authenticating access token and StorageConsumer UID
@@ -28,7 +30,7 @@ func (interceptor *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler,
 	) (interface{}, error) {
-		log.Println("--> unary interceptor: ", info.FullMethod)
+		klog.Infof("--> unary interceptor: %q", info.FullMethod)
 
 		err := interceptor.authorize(ctx, info.FullMethod)
 		if err != nil {
@@ -40,19 +42,37 @@ func (interceptor *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
 }
 
 func (a *AuthInterceptor) authorize(ctx context.Context, method string) error {
-
-	switch method {
-	case "providerpb.OnBoardConsumer":
+	if common.TokenAuthMethods()[method] {
 		return a.authorizeToken(ctx)
-	default:
+	} else if common.UIDAuthMethods()[method] {
 		return a.authorizeConsumerID(ctx)
 	}
 
+	return status.Errorf(codes.Unauthenticated, fmt.Sprintf("invalid rpc call %q", method))
 }
 
 // authorizeConsumerID validates the storageConsumer UID
 func (a *AuthInterceptor) authorizeConsumerID(ctx context.Context) error {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return status.Errorf(codes.Unauthenticated, "metadata is not provided")
+	}
 
+	values := md["authorization"]
+	if len(values) == 0 {
+		return status.Errorf(codes.Unauthenticated, "authorization consumer UID is not provided")
+	}
+
+	consumerID := values[0]
+	_, err := a.authManager.VerifyEncryptedID(consumerID)
+	if err != nil {
+		return status.Errorf(codes.Unauthenticated, "consumer ID is invalid: %v", err)
+	}
+	return nil
+}
+
+// authorizeToken validates the access token
+func (a *AuthInterceptor) authorizeToken(ctx context.Context) error {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return status.Errorf(codes.Unauthenticated, "metadata is not provided")
@@ -69,10 +89,5 @@ func (a *AuthInterceptor) authorizeConsumerID(ctx context.Context) error {
 		return status.Errorf(codes.Unauthenticated, "access token is invalid: %v", err)
 	}
 
-	return nil
-}
-
-// authorizeToken validates the access token
-func (a *AuthInterceptor) authorizeToken(ctx context.Context) error {
 	return nil
 }
