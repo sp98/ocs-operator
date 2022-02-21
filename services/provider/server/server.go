@@ -289,8 +289,8 @@ func (s *OCSProviderServer) getExternalResources(ctx context.Context, consumerRe
 		Name: "monitoring-endpoint",
 		Kind: "CephCluster",
 		Data: mustMarshal(map[string]string{
-			"MonitoringEndpoint": scMonitoring.Spec.ClusterIP,
-			"MonitoringPort":     strconv.Itoa(int(scMonitoring.Spec.Ports[0].Port)),
+			"MonitoringEndpoint": "10.0.212.48",
+			"MonitoringPort":     "9283",
 		})})
 
 	for _, i := range consumerResource.Status.CephResources {
